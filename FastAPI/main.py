@@ -1,7 +1,22 @@
 from fastapi import FastAPI
+from enum import Enum
+
 
 app = FastAPI()
 
-@app.get("/hello/{name}")
-async def helloS(name):
-    return f"Welcome ShaonFuck {name}"
+class AvailableCuisines(str,Enum):
+    bangladeshi = "bangladeshi"
+    american = "american"
+    nepali = "nepali"
+    
+food_item = {
+    'bangladeshi' : ['Biriyani','Pitha'],
+    'american' : ['Hot Dog','Burger'],
+    'nepali' : ['Samosa','Dosa']
+    
+}
+
+valid_cuisines = food_item.keys()
+@app.get("/get_items/{cuisine}")
+async def get_items(cuisine: AvailableCuisines):
+    return {"cuisine": cuisine, "items": food_item[cuisine]}
