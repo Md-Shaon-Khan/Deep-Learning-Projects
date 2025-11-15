@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Potato Disease Classifier</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 20px;
+            background-color: #f4f4f9;
+        }
+        .container {
+            background-color: #fff;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+            width: 100%;
+            max-width: 500px;
+        }
+        h1 {
+            color: #38761d;
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        input[type="file"] {
+            display: block;
+            margin-bottom: 20px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 5px;
+            width: 100%;
+            box-sizing: border-box;
+        }
+        button {
+            background-color: #38761d;
+            color: white;
+            padding: 10px 15px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+            width: 100%;
+            transition: background-color 0.3s;
+        }
+        button:hover {
+            background-color: #274e13;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            min-height: 50px;
+            background-color: #e6ffe6;
+        }
+        #result h3 {
+            color: #38761d;
+        }
+        #image-preview {
+            max-width: 100%;
+            height: auto;
+            border-radius: 5px;
+            margin-top: 15px;
+            display: none;
+        }
+        .error {
+            color: red;
+            font-weight: bold;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🥔 Potato Disease Predictor</h1>
+    
+    <input type="file" id="fileInput" accept="image/jpeg, image/png">
+    <button onclick="uploadImage()">Predict Disease</button>
+    
+    <img id="image-preview" src="#" alt="Image Preview">
+
+    <div id="result">
+        <h3>Prediction Result:</h3>
+        <p>Upload an image (JPG or PNG) of a potato leaf and click "Predict Disease" to see the result.</p>
+    </div>
+</div>
+
+<script>
+    const API_URL = "http://127.0.0.1:8000/predict";
+    
+    const fileInput = document.getElementById('fileInput');
+    const resultDiv = document.getElementById('result');
+    const imagePreview = document.getElementById('image-preview');
+
+    fileInput.addEventListener('change', function() {
+        const file = this.files[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                imagePreview.src = e.target.result;
+                imagePreview.style.display = 'block';
+            }
+            reader.readAsDataURL(file);
+        } else {
+            imagePreview.style.display = 'none';
+        }
+    });
+
+    async function uploadImage() {
+        const file = fileInput.files[0];
+
+        if (!file) {
+            resultDiv.innerHTML = '<p class="error">Please select an image file first.</p>';
+            return;
+        }
+
+        resultDiv.innerHTML = '<h3>Prediction Result:</h3><p>Processing... Please wait.</p>';
+
+        const formData = new FormData();
+        formData.append("file", file);
+
+        try {
+            const response = await fetch(API_URL, {
+                method: 'POST',
+                body: formData
+            });
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const detail = errorData.detail || 'Unknown server error.';
+                throw new Error(`API Error: ${response.status} - ${detail}`);
+            }
+
+            const data = await response.json();
+            displayResult(data);
+
+        } catch (error) {
+            console.error('Fetch error:', error);
+            resultDiv.innerHTML = `<h3>Prediction Result:</h3><p class="error">An error occurred: ${error.message}</p>`;
+        }
+    }
+
+    function displayResult(data) {
+        const scores = data.confidence_scores;
+        const maxScore = Math.max(...scores);
+        const confidencePercentage = (maxScore * 100).toFixed(2);
+
+        resultDiv.innerHTML = `
+            <h3>Prediction Result:</h3>
+            <p><strong>Predicted Class:</strong> ${data.predicted_class}</p>
+            <p><strong>Confidence:</strong> ${confidencePercentage}%</p>
+            <p>Filename: ${data.filename}</p>
+        `;
+    }
+</script>
+
+</body>
+</html>
